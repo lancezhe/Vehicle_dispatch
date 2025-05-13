@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.business.mapper.BusApplyMapper">
+	<resultMap type="BusApply" id="BusApplyResult">
+		<!-- 基础字段 -->
+		<id     property="id"               column="id"              />
+		<result property="applicantId"      column="applicant_id"     />
+		<result property="applicantName"      column="applicant_name"     />
+		<result property="applicantPhone"      column="applicant_phone"     />
+		<result property="carUser"      column="car_user"     />
+		<result property="phoneUser"      column="phone_user"     />
+		<result property="matter"      column="matter"     />
+		<result property="secret"      column="secret"     />
+		<result property="outCity"      column="out_city"     />
+		<result property="department"       column="department"       />
+		<result property="startLocation"    column="start_location"   />
+		<result property="endLocation"      column="end_location"     />
+		<result property="startTime"    column="start_time"   />
+		<result property="endTime"      column="end_time"     />
+		<result property="applyTime"        column="apply_time"       />
+		<result property="status"           column="status"           />
+		
+		<!-- 审批流程字段 -->
+		<result property="depApproveId"     column="dep_approve_id"    />
+		<result property="depApproveName"     column="dep_approve_name"    />
+		<result property="depApproveTime"   column="dep_approve_time"  />
+		<result property="offApproveId"     column="off_approve_id"    />
+		<result property="offApproveName"     column="off_approve_name"    />
+		<result property="offApproveTime"   column="off_approve_time"  />
+		<result property="leaderApproveName"  column="leader_approve_name" />
+		<result property="leaderApproveTime" column="leader_approve_time"/>
+		<result property="dispatcherId"     column="dispatcher_id"     />
+		<result property="dispatcherName"     column="dispatcher_name"     />
+		<result property="dispatcherApproveTime" column="dispatcher_approve_time" />
+		
+		<!-- 资源分配字段 -->
+		<result property="vehicleId"        column="vehicle_id"       />
+		<result property="driverId"         column="driver_id"        />
+		<result property="driverName"         column="driver_name"        />
+		
+		<!-- 继承自BaseEntity的公共字段 -->
+		<result property="createBy"         column="create_by"        />
+		<result property="createTime"       column="create_time"      />
+		<result property="updateBy"         column="update_by"        />
+		<result property="updateTime"       column="update_time"      />
+		<result property="remark"           column="remark"           />
+		<result property="delFlag"          column="del_flag"           />
+	</resultMap>
+	<sql id="selectApplyVo">
+        SELECT *
+		<!-- id, applicant_id, department, start_location, end_location,
+        apply_time, status, dep_approve_id, dep_approve_time,
+        off_approve_id, off_approve_time, leader_approve_id, leader_approve_time,
+        dispatcher_id, dispatcher_approve_time, vehicle_id, driver_id, create_time,  remark -->
+ 		FROM bus_apply
+		WHERE del_flag = 0  <!-- 只查询未删除的记录 -->
+    </sql>
+	
+	<select id="selectApplyList" parameterType="BusApply" resultMap="BusApplyResult">
+	    <include refid="selectApplyVo"/>
+		<!-- <where> -->
+			<!-- <if test="status != null and status != ''">
+				AND status = #{status}  and del_flag = 0
+			</if> -->
+		<!-- </where> -->
+	</select>
+	
+	<select id="selectPostAll" resultMap="BusApplyResult">
+		<include refid="selectApplyVo"/>
+	</select>
+	
+	<select id="selectApplyById" parameterType="Long" resultMap="BusApplyResult">
+		<include refid="selectApplyVo"/>
+		and id = #{id}
+	</select>
+	
+	<select id="selectApplyListByUserId" parameterType="Long" resultType="Long">
+		select p.post_id
+        from sys_post p
+	        left join sys_user_post up on up.post_id = p.post_id
+	        left join sys_user u on u.user_id = up.user_id
+	    where u.user_id = #{userId}
+	</select>
+	
+	<select id="selectPostsByUserName" parameterType="String" resultMap="BusApplyResult">
+		select p.post_id, p.post_name, p.post_code
+		from sys_post p
+			 left join sys_user_post up on up.post_id = p.post_id
+			 left join sys_user u on u.user_id = up.user_id
+		where u.user_name = #{userName}
+	</select>
+	
+	<select id="checkPostNameUnique" parameterType="String" resultMap="BusApplyResult">
+		<include refid="selectApplyVo"/>
+		 AND post_name=#{postName} limit 1
+	</select>
+	
+	<select id="checkPostCodeUnique" parameterType="String" resultMap="BusApplyResult">
+		<include refid="selectApplyVo"/>
+		 AND post_code=#{postCode} limit 1
+	</select>
+	<update id="deleteApplyByIds" parameterType="Long">
+		UPDATE bus_apply 
+		SET 
+			del_flag = '1',
+			update_by = #{updateBy},
+			update_time = sysdate()
+		WHERE id IN
+		<foreach collection="array" item="id" open="(" separator="," close=")">
+			#{id}
+		</foreach>
+		AND status = '0'  <!-- 只能删除草稿状态的记录 -->
+		AND del_flag = '0' <!-- 防止重复软删除 -->
+	</update>
+    <!-- 修改用车申请 -->
+    <update id="updateApply" parameterType="com.ruoyi.business.domain.BusApply">
+        UPDATE bus_apply
+        SET
+            applicant_id = #{applicantId},
+            applicant_name = #{applicantName},
+            applicant_phone = #{applicantPhone},
+            department = #{department},
+            car_user = #{carUser},
+            phone_user = #{phoneUser},
+            matter = #{matter},
+            start_location = #{startLocation},
+            end_location = #{endLocation},
+            start_time = #{startTime},
+            end_time = #{endTime},
+            out_city = #{outCity},
+            secret = #{secret},
+            status = #{status},
+            dep_approve_id = #{depApproveId},
+            dep_approve_name = #{depApproveName},
+            dep_approve_time = #{depApproveTime},
+            off_approve_id = #{offApproveId},
+            off_approve_name = #{offApproveName},
+            off_approve_time = #{offApproveTime},
+            leader_approve_id = #{leaderApproveId},
+            leader_approve_name = #{leaderApproveName},
+            leader_approve_time = #{leaderApproveTime},
+            dispatcher_id = #{dispatcherId},
+            dispatcher_name = #{dispatcherName},
+            dispatcher_approve_time = #{dispatcherApproveTime},
+            driver_id = #{driverId},
+            driver_name = #{driverName},
+            reason = #{reason},
+            update_by = #{updateBy},
+            update_time = #{updateTime},
+            remark = #{remark},
+			reason = #{reason},
+            del_flag = #{delFlag}
+        WHERE
+            id = #{id}
+    </update>
+ 	
+	<!-- 新增用车申请 -->
+	<insert id="insertApply" parameterType="BusApply" useGeneratedKeys="true" keyProperty="id">
+		INSERT INTO bus_apply(
+			<if test="id != null">id,</if>
+			applicant_id,
+			applicant_name,
+			<if test="applicantPhone != null and applicantPhone != ''">applicant_phone,</if>
+			department,
+			car_user,
+			<if test="phoneUser != null and phoneUser != ''">phone_user,</if>
+			<if test="matter != null and matter != ''">matter,</if>
+			<if test="outCity != null and outCity != ''">out_city,</if>
+			<if test="secret != null and secret != ''">secret,</if>
+			start_location,
+			end_location,
+			<if test="startTime != null">start_time,</if>
+			<if test="endTime != null">end_time,</if>
+			apply_time,
+			status,
+			<if test="depApproveId != null">dep_approve_id,</if>
+			<if test="depApproveName != null and depApproveName != ''">dep_approve_name,</if>
+			<if test="depApproveTime != null">dep_approve_time,</if>
+			<if test="offApproveId != null">off_approve_id,</if>
+			<if test="offApproveName != null and offApproveName != ''">off_approve_name,</if>
+			<if test="offApproveTime != null">off_approve_time,</if>
+			<if test="leaderApproveId != null">leader_approve_id,</if>
+			<if test="leaderApproveName != null and leaderApproveName != ''">leader_approve_name,</if>
+			<if test="leaderApproveTime != null">leader_approve_time,</if>
+			<if test="dispatcherId != null">dispatcher_id,</if>
+			<if test="dispatcherName != null and dispatcherName != ''">dispatcher_name,</if>
+			<if test="dispatcherApproveTime != null">dispatcher_approve_time,</if>
+			<if test="vehicleId != null">vehicle_id,</if>
+			<if test="driverId != null">driver_id,</if>
+			<if test="driverName != null and driverName != ''">driver_name,</if>
+			<if test="createBy != null and createBy != ''">create_by,</if>
+			create_time,
+			<if test="updateBy != null and updateBy != ''">update_by,</if>
+			<if test="updateTime != null">update_time,</if>
+			<if test="reason != null">reason,</if>
+			<if test="remark != null">remark,</if>
+			del_flag
+		) VALUES (
+			<if test="id != null">#{id},</if>
+			#{applicantId},
+			#{applicantName},
+			<if test="applicantPhone != null and applicantPhone != ''">#{applicantPhone},</if>
+			#{department},
+			#{carUser},
+			<if test="phoneUser != null and phoneUser != ''">#{phoneUser},</if>
+			<if test="matter != null and matter != ''">#{matter},</if>
+			<if test="outCity != null and outCity != ''">#{outCity},</if>
+			<if test="secret != null and secret != ''">#{secret},</if>
+			#{startLocation},
+			#{endLocation},
+			<if test="startTime != null">#{startTime},</if>
+			<if test="endTime != null">#{endTime},</if>
+			#{applyTime},
+			#{status},
+			<if test="depApproveId != null">#{depApproveId},</if>
+			<if test="depApproveName != null and depApproveName != ''">#{depApproveName},</if>
+			<if test="depApproveTime != null">#{depApproveTime},</if>
+			<if test="offApproveId != null">#{offApproveId},</if>
+			<if test="offApproveName != null and offApproveName != ''">#{offApproveName},</if>
+			<if test="offApproveTime != null">#{offApproveTime},</if>
+			<if test="leaderApproveId != null">#{leaderApproveId},</if>
+			<if test="leaderApproveName != null and leaderApproveName != ''">#{leaderApproveName},</if>
+			<if test="leaderApproveTime != null">#{leaderApproveTime},</if>
+			<if test="dispatcherId != null">#{dispatcherId},</if>
+			<if test="dispatcherName != null and dispatcherName != ''">#{dispatcherName},</if>
+			<if test="dispatcherApproveTime != null">#{dispatcherApproveTime},</if>
+			<if test="vehicleId != null">#{vehicleId},</if>
+			<if test="driverId != null">#{driverId},</if>
+			<if test="driverName != null and driverName != ''">#{driverName},</if>
+			<if test="createBy != null and createBy != ''">#{createBy},</if>
+			#{createTime}
+			<if test="updateBy != null and updateBy != ''">,#{updateBy}</if>
+			<if test="updateTime != null">,#{updateTime}</if>
+			<if test="reason != null and reason != ''">,#{reason}</if>
+			<if test="remark != null and remark != ''">,#{remark}</if>
+			,0		<!-- 删除状态 0正常  1删除 -->
+		)
+	</insert>
+	
+	<delete id="deletePostById" parameterType="Long">
+		delete from sys_post where post_id = #{postId}
+	</delete>
+	
+	<delete id="deletePostByIds" parameterType="Long">
+ 		delete from sys_post where post_id in
+ 		<foreach collection="array" item="postId" open="(" separator="," close=")">
+ 			#{postId}
+        </foreach> 
+ 	</delete>
+
+</mapper> 
